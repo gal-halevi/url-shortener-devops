@@ -3,8 +3,12 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { testDatabaseConnection } from './config/database';
 import { createURL, getURL, deleteURL } from './controllers/url.controller';
-// ADD THIS IMPORT:
 import { authenticateApiKey, optionalAuth } from './middleware/auth.middleware';
+import { 
+  globalRateLimiter, 
+  createUrlRateLimiter, 
+  deleteUrlRateLimiter 
+} from './middleware/ratelimit.middleware';
 
 const app = express();
 
@@ -13,7 +17,7 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// Health check endpoint
+// Health check endpoint (no rate limiting)
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ 
     status: 'ok',
@@ -22,7 +26,7 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// Readiness check endpoint
+// Readiness check endpoint (no rate limiting)
 app.get('/ready', async (req: Request, res: Response) => {
   const dbHealthy = await testDatabaseConnection();
   
@@ -41,10 +45,10 @@ app.get('/ready', async (req: Request, res: Response) => {
   }
 });
 
-// URL routes - NOW WITH AUTH:
-app.post('/api/v1/urls', authenticateApiKey, createURL);      // Requires auth
-app.get('/api/v1/urls/:code', getURL);                        // Public (no auth needed)
-app.delete('/api/v1/urls/:code', authenticateApiKey, deleteURL); // Requires auth
+// URL routes with SPECIFIC rate limiters (no global limiter here)
+app.post('/api/v1/urls', authenticateApiKey, createUrlRateLimiter, createURL);
+app.get('/api/v1/urls/:code', globalRateLimiter, getURL);  // Use global for reads
+app.delete('/api/v1/urls/:code', authenticateApiKey, deleteUrlRateLimiter, deleteURL);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
