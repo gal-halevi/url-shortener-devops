@@ -67,27 +67,27 @@ export class URLService {
    * Validate URL format
    */
   private validateURL(url: string): void {
-    try {
-      const parsed = new URL(url);
-      
-      // Only allow http and https
-      if (!['http:', 'https:'].includes(parsed.protocol)) {
-        throw createValidationError('Only HTTP and HTTPS URLs are allowed');
-      }
-      
-      // Block localhost and internal IPs (security)
-      const blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0'];
-      if (blockedHosts.includes(parsed.hostname)) {
-        throw createValidationError('Cannot shorten localhost URLs');
-      }
-      
-    } catch (error) {
-      if (error instanceof TypeError) {
-        throw createValidationError('Invalid URL format');
-      }
-      throw error;
-    }
+  let parsed: URL;
+  
+  // This will throw TypeError if invalid - let it bubble up naturally
+  try {
+    parsed = new URL(url);
+  } catch (error) {
+    // Native URL constructor error - wrap it
+    throw createValidationError('Invalid URL format');
   }
+  
+  // Only allow http and https
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw createValidationError('Only HTTP and HTTPS URLs are allowed');
+  }
+  
+  // Block localhost and internal IPs (security)
+  const blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0'];
+  if (blockedHosts.includes(parsed.hostname)) {
+    throw createValidationError('Cannot shorten localhost URLs');
+  }
+}
 
   /**
    * Validate custom alias
