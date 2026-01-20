@@ -9,6 +9,7 @@ import {
   createUrlRateLimiter, 
   deleteUrlRateLimiter 
 } from './middleware/ratelimit.middleware';
+import { errorHandler, notFoundHandler } from './middleware/error.middleware';
 
 const app = express();
 
@@ -47,12 +48,13 @@ app.get('/ready', async (req: Request, res: Response) => {
 
 // URL routes with SPECIFIC rate limiters (no global limiter here)
 app.post('/api/v1/urls', authenticateApiKey, createUrlRateLimiter, createURL);
-app.get('/api/v1/urls/:code', globalRateLimiter, getURL);  // Use global for reads
+app.get('/api/v1/urls/:code', globalRateLimiter, getURL);
 app.delete('/api/v1/urls/:code', authenticateApiKey, deleteUrlRateLimiter, deleteURL);
 
-// 404 handler
-app.use((req: Request, res: Response) => {
-  res.status(404).json({ error: 'Not found' });
-});
+// 404 handler - must be after all routes
+app.use(notFoundHandler);
+
+// Error handler - must be last
+app.use(errorHandler);
 
 export default app;
