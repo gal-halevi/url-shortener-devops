@@ -10,13 +10,38 @@ jest.mock('../../src/config/database', () => ({
   testDatabaseConnection: jest.fn().mockResolvedValue(true),
 }));
 
-// Mock Redis
+// Mock Redis with stateful counters
+const redisStore: { [key: string]: { value: number; expiry?: number } } = {};
+
 jest.mock('ioredis', () => {
   return jest.fn().mockImplementation(() => ({
-    get: jest.fn().mockResolvedValue(null),
-    set: jest.fn().mockResolvedValue('OK'),
-    incr: jest.fn().mockResolvedValue(1),
-    pexpire: jest.fn().mockResolvedValue(1),
+    get: jest.fn().mockImplementation((key: string) => {
+      const item = redisStore[key];
+      if (!item) return Promise.resolve(null);
+      if (item.expiry && Date.now() > item.expiry) {
+        delete redisStore[key];
+        return Promise.resolve(null);
+      }
+      return Promise.resolve(item.value.toString());
+    }),
+    set: jest.fn().mockImplementation((key: string, value: string) => {
+      redisStore[key] = { value: parseInt(value, 10) };
+      return Promise.resolve('OK');
+    }),
+    incr: jest.fn().mockImplementation((key: string) => {
+      if (!redisStore[key]) {
+        redisStore[key] = { value: 1 };
+      } else {
+        redisStore[key].value++;
+      }
+      return Promise.resolve(redisStore[key].value);
+    }),
+    pexpire: jest.fn().mockImplementation((key: string, ms: number) => {
+      if (redisStore[key]) {
+        redisStore[key].expiry = Date.now() + ms;
+      }
+      return Promise.resolve(1);
+    }),
     on: jest.fn(),
   }));
 });
@@ -351,6 +376,96 @@ describe('URL Routes Integration Tests', () => {
 
       expect(response.status).toBe(404);
       expect(response.body).toHaveProperty('error');
+    });
+  });
+
+  describe('Rate Limiting', () => {
+    test('should enforce rate limits after multiple requests', async () => {
+      // Make multiple requests to hit the limit
+      const requests = [];
+      
+      for (let i = 0; i < 12; i++) {
+        // Mock authentication for each request
+        mockQuery.mockResolvedValueOnce({
+          rows: [{
+            id: 'user-123',
+            email: 'test@example.com',
+            is_active: true,
+          }],
+          command: 'SELECT',
+          rowCount: 1,
+          oid: 0,
+          fields: [],
+        });
+
+        // Mock URL creation
+        mockQuery.mockResolvedValueOnce({
+          rows: [{
+            id: `url-${i}`,
+            short_code: `code${i}`,
+            long_url: 'https://example.com',
+            user_id: 'user-123',
+            created_at: new Date(),
+            expires_at: null,
+            is_active: true,
+            click_count: 0,
+          }],
+          command: 'INSERT',
+          rowCount: 1,
+          oid: 0,
+          fields: [],
+        });
+
+        requests.push(
+          request(app)
+            .post('/api/v1/urls')
+            .set('X-API-Key', 'test-api-key')
+            .send({ longUrl: `https://example.com/${i}` })
+        );
+      }
+
+      const responses = await Promise.all(requests);
+
+      // First 10 should succeed (201)
+      const successful = responses.filter(r => r.status === 201);
+      const rateLimited = responses.filter(r => r.status === 429);
+
+      expect(successful.length).toBeGreaterThanOrEqual(10);
+      expect(rateLimited.length).toBeGreaterThanOrEqual(1);
+
+      // Check that 429 response has proper error
+      if (rateLimited.length > 0) {
+        expect(rateLimited[0].body).toHaveProperty('error');
+        expect(rateLimited[0].body.error).toContain('Rate limit');
+      }
+    });
+
+    test('should have different rate limits for different endpoints', async () => {
+      // GET endpoint should have higher limit (100 vs 10)
+      
+      // Mock URL lookup for GET
+      mockQuery.mockResolvedValue({
+        rows: [{
+          id: 'url-123',
+          short_code: 'abc123',
+          long_url: 'https://example.com',
+          user_id: 'user-123',
+          created_at: new Date(),
+          expires_at: null,
+          is_active: true,
+          click_count: 5,
+        }],
+        command: 'SELECT',
+        rowCount: 1,
+        oid: 0,
+        fields: [],
+      });
+
+      const response = await request(app)
+        .get('/api/v1/urls/abc123');
+
+      // GET should have higher limit
+      expect(response.headers['x-ratelimit-limit']).toBe('100');
     });
   });
 });
