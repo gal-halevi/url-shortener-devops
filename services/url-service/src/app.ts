@@ -2,13 +2,15 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { testDatabaseConnection } from './config/database';
+// ADD THESE IMPORTS:
+import { createURL, getURL, deleteURL } from './controllers/url.controller';
 
 const app = express();
 
 // Middleware
-app.use(helmet()); // Security headers
-app.use(cors()); // Enable CORS
-app.use(express.json()); // Parse JSON bodies
+app.use(helmet());
+app.use(cors());
+app.use(express.json());
 
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
@@ -19,7 +21,7 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// Readiness check endpoint (checks dependencies)
+// Readiness check endpoint
 app.get('/ready', async (req: Request, res: Response) => {
   const dbHealthy = await testDatabaseConnection();
   
@@ -37,6 +39,11 @@ app.get('/ready', async (req: Request, res: Response) => {
     });
   }
 });
+
+// ADD THESE URL ROUTES:
+app.post('/api/v1/urls', createURL);
+app.get('/api/v1/urls/:code', getURL);
+app.delete('/api/v1/urls/:code', deleteURL);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
