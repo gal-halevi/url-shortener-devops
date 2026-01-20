@@ -2,8 +2,9 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { testDatabaseConnection } from './config/database';
-// ADD THESE IMPORTS:
 import { createURL, getURL, deleteURL } from './controllers/url.controller';
+// ADD THIS IMPORT:
+import { authenticateApiKey, optionalAuth } from './middleware/auth.middleware';
 
 const app = express();
 
@@ -40,10 +41,10 @@ app.get('/ready', async (req: Request, res: Response) => {
   }
 });
 
-// ADD THESE URL ROUTES:
-app.post('/api/v1/urls', createURL);
-app.get('/api/v1/urls/:code', getURL);
-app.delete('/api/v1/urls/:code', deleteURL);
+// URL routes - NOW WITH AUTH:
+app.post('/api/v1/urls', authenticateApiKey, createURL);      // Requires auth
+app.get('/api/v1/urls/:code', getURL);                        // Public (no auth needed)
+app.delete('/api/v1/urls/:code', authenticateApiKey, deleteURL); // Requires auth
 
 // 404 handler
 app.use((req: Request, res: Response) => {
