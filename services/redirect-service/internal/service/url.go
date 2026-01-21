@@ -7,10 +7,16 @@ import (
 	"time"
 )
 
+type URLServiceInterface interface {
+	GetLongURL(shortCode string) (string, error)
+}
+
 type URLService struct {
 	db    repository.DatabaseRepositoryInterface
 	cache repository.CacheRepositoryInterface
 }
+
+var _ URLServiceInterface = (*URLService)(nil)
 
 func NewURLService(db repository.DatabaseRepositoryInterface, cache repository.CacheRepositoryInterface) *URLService {
 	return &URLService{

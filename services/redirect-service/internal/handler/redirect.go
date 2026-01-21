@@ -10,10 +10,10 @@ import (
 )
 
 type RedirectHandler struct {
-	urlService *service.URLService
+	urlService service.URLServiceInterface
 }
 
-func NewRedirectHandler(urlService *service.URLService) *RedirectHandler {
+func NewRedirectHandler(urlService service.URLServiceInterface) *RedirectHandler {
 	return &RedirectHandler{
 		urlService: urlService,
 	}
