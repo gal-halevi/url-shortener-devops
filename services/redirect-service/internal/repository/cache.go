@@ -54,3 +54,7 @@ func (r *CacheRepository) Set(key, value string, expiration time.Duration) error
 func (r *CacheRepository) Close() error {
 	return r.client.Close()
 }
+
+func (r *CacheRepository) Delete(key string) error {
+	return r.client.Del(r.ctx, key).Err()
+}
