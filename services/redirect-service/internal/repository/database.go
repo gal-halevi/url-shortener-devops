@@ -17,6 +17,7 @@ type URL struct {
 	ShortCode string
 	LongURL   string
 	IsActive  bool
+	ClickCount int64
 }
 
 func NewDatabaseRepository(databaseURL string) (*DatabaseRepository, error) {
