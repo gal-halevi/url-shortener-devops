@@ -8,11 +8,11 @@ import (
 )
 
 type URLService struct {
-	db    *repository.DatabaseRepository
-	cache *repository.CacheRepository
+	db    repository.DatabaseRepositoryInterface
+	cache repository.CacheRepositoryInterface
 }
 
-func NewURLService(db *repository.DatabaseRepository, cache *repository.CacheRepository) *URLService {
+func NewURLService(db repository.DatabaseRepositoryInterface, cache repository.CacheRepositoryInterface) *URLService {
 	return &URLService{
 		db:    db,
 		cache: cache,
