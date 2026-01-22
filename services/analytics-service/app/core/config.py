@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from typing import Optional
-
 
 class Settings(BaseSettings):
     # App
@@ -18,9 +18,9 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "development"
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-
+    model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=True
+    )
 
 settings = Settings()

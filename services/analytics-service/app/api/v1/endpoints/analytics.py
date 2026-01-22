@@ -5,7 +5,7 @@ from app.services.analytics_service import AnalyticsService
 from app.schemas.analytics import URLStats, UserSummary
 from uuid import UUID
 from typing import Optional
-from datetime import datetime  # Add this import
+from datetime import datetime, timezone  # Add this import
 
 router = APIRouter()
 
@@ -59,5 +59,5 @@ def health_check():
     return {
         "status": "ok",
         "service": "analytics-service",
-        "timestamp": datetime.utcnow().isoformat() + "Z"  # Add timestamp
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }

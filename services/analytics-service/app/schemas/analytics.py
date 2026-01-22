@@ -1,8 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional, List
 from uuid import UUID
-
 
 class ClickEventBase(BaseModel):
     short_code: str
@@ -10,18 +9,14 @@ class ClickEventBase(BaseModel):
     user_agent: Optional[str] = None
     referer: Optional[str] = None
 
-
 class ClickEventCreate(ClickEventBase):
     url_id: Optional[UUID] = None
-
 
 class ClickEventResponse(ClickEventBase):
     id: UUID
     clicked_at: datetime
     
-    class Config:
-        from_attributes = True
-
+    model_config = ConfigDict(from_attributes=True)
 
 class URLStats(BaseModel):
     url_id: UUID
@@ -30,7 +25,6 @@ class URLStats(BaseModel):
     unique_ips: int
     last_clicked: Optional[datetime]
     click_timeline: List[dict]  # [{date: "2026-01-20", clicks: 15}, ...]
-
 
 class UserSummary(BaseModel):
     user_id: UUID

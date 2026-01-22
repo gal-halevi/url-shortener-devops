@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, distinct
 from app.models.click_event import ClickEvent
 from app.schemas.analytics import URLStats, UserSummary
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
 
@@ -29,7 +29,7 @@ class AnalyticsService:
             return None
         
         # Get click timeline (last N days)
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
         timeline = db.query(
             func.date(ClickEvent.clicked_at).label("date"),
             func.count(ClickEvent.id).label("clicks")
