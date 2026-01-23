@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from app.api.v1 import analytics
 from app.core.config import settings
@@ -35,4 +36,5 @@ async def health_check():
     return {
         "status": "ok",
         "service": settings.APP_NAME,
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
