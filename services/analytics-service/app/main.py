@@ -1,46 +1,38 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from app.api.v1 import analytics
 from app.core.config import settings
-from app.api.v1 import api_router
-from app.models import Base
 from app.core.database import engine
-from datetime import datetime
+from app.models.click_event import Base
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan events"""
+    # Startup
+    Base.metadata.create_all(bind=engine)
+    yield
+    # Shutdown (if needed)
+    pass
+
 
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
-    description="Analytics service for URL shortener platform"
+    lifespan=lifespan,
 )
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+# Include routers
+app.include_router(
+    analytics.router,
+    prefix=f"{settings.API_V1_PREFIX}/analytics",
+    tags=["analytics"]
 )
-
-# Include API router
-app.include_router(api_router, prefix=settings.API_V1_PREFIX)
-
-
-@app.get("/")
-def root():
-    return {
-        "service": settings.APP_NAME,
-        "version": settings.VERSION,
-        "status": "running"
-    }
 
 
 @app.get("/health")
-def health():
+async def health_check():
     return {
         "status": "ok",
-        "service": "analytics-service",
-        "timestamp": datetime.utcnow().isoformat() + "Z"
+        "service": settings.APP_NAME,
     }
